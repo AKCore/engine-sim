@@ -5,13 +5,6 @@ on:
   pull_request:
     branches: [ "master" ]
 
-
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
-
-
-
 jobs:
   build:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
@@ -22,46 +15,79 @@ jobs:
       # Set your boost version
       BOOST_VERSION: 1.78.0
       # Set you boost path to the default one (I don't know if you can use variables here)
-      BOOST_PATH: ${{github.workspace}}/boost/
-      
     steps:
-    - uses: actions/checkout@v3
-  
-    - name: Checkout submodules
-      run: git submodule update --init --recursive
-    
-# Retrieve the cache, uses cache@v2
-    - name: Cache boost
-      uses: actions/cache@v2
-      id: cache-boost
+    - name: Download SDL2
+      # You may pin to the exact commit or the version.
+      # uses: albin-johansson/download-sdl2@d4e9339339b31b200ada5c7530d5eadad01576c2
+      uses: albin-johansson/download-sdl2@v2
+      id: install-sdl2
       with:
-        # Set the path to cache
-        path: ${{env.BOOST_PATH}}
-        # Use the version as the key to only cache the correct version
-        key: boost-${{env.BOOST_VERSION}}
+        # Where the SDL2 sources will be saved
+         sources_destination: ${{github.workspace}}
+        # Where the SDL2 runtime binaries will be saved
+         binaries_destination: ${{github.workspace}}
+    - name: Download SDL2_image
+      # You may pin to the exact commit or the version.
+      # uses: albin-johansson/download-sdl2-image@4351247ed4fa2a10344d76071bd2567e2ca56c98
+      uses: albin-johansson/download-sdl2-image@v2
+      with:
+        # Where the SDL2_image sources will be saved
+         sources_destination: ${{github.workspace}}
+        # Where the SDL2_image runtime binaries will be saved
+         binaries_destination: ${{github.workspace}}
 
-    # Actual install step (only runs if the cache is empty)
-    - name: Install boost
-      if: steps.cache-boost.outputs.cache-hit != 'true'
-      uses: MarkusJx/install-boost@v2.3.0
+        
+    - name: Download Flex/Bison
+      shell: powershell
+      run: Invoke-WebRequest -Uri "http://gigenet.dl.sourceforge.net/project/winflexbison/win_flex_bison3-latest.zip" `
+                                  -OutFile ${{github.workspace}}/bison.zip
+            
+    - name: Install Flex/Bison
+      shell: cmd
+      run: |
+        cd ${{github.workspace}}
+        mkdir flex
+        7z x -y bison.zip -oflex
+        del bison.zip
+        D:/a/engine-sim/engine-sim/flex/win_flex.exe --version
+        D:/a/engine-sim/engine-sim/flex/win_bison.exe --version
+
+
+    - name: Checking out Submodules
+      uses: actions/checkout@v2
       with:
-        # Set the boost version (required)
-        boost_version: ${{env.BOOST_VERSION}}
-        # Set the install directory
-        boost_install_dir: ${{env.BOOST_PATH}}
-        # Set your platform version
+        submodules: recursive
+      
+    - name: Install Boost
+      uses: NexusXe/install-boost@v2.3.2
+      id: install-boost
+      with:
+        boost_version: 1.78.0
         platform_version: 2022
-        # Set the toolset
         toolset: msvc
+        arch: aarch64
+        
+    
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      working-directory: ${{github.workspace}}/build
+      run: cmake .. -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" -A x64 -DSDL2_PATH=${{github.workspace}}/SDL2-2.0.16/ -DSDL2_INCLUDE_DIR=${{github.workspace}}/SDL2-2.0.16/include -DSDL2_LIBRARY=${{github.workspace}}/SDL2-2.0.16/lib/x64/SDL2.lib -DSDL2MAIN_LIBRARY=${{github.workspace}}/SDL2-2.0.16/lib/x64/SDL2main.lib -DSDL2_IMAGE_LIBRARY=${{github.workspace}}/SDL2_image-2.0.5/lib/x64/SDL2_image.lib -DSDL2_IMAGE_INCLUDE_DIR=${{github.workspace}}/SDL2_image-2.0.5/include -DPIRANHA_ENABLED=True -DFLEX_EXECUTABLE=${{github.workspace}}\flex\win_flex.exe -DFLEX_INCLUDE_DIR=${{github.workspace}}\flex -DBISON_EXECUTABLE=${{github.workspace}}\flex\win_bison.exe
       env:
-        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
-
+         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+         SDL2_INCLUDE_DIR: ${{github.workspace}}/SDL2-2.0.16/include
+         SDL2_LIBRARY: ${{github.workspace}}/SDL2-2.0.16/lib/x64/SDL2.lib
+         SDL2MAIN_LIBRARY: ${{github.workspace}}/SDL2-2.0.16/lib/x64/SDL2main.lib
+         SDL2_IMAGE_INCLUDE_DIR: ${{github.workspace}}/SDL2_image-2.0.5/include
+         SDL2_IMAGE_LIBRARY: ${{github.workspace}}/SDL2_image-2.0.5/lib/x64/SDL2_image.lib
+         PIRANHA_ENABLED: true
+         FLEX_EXECUTABLE: ${{github.workspace}}\flex\win_flex.exe
+         FLEX_INCLUDE_DIR: ${{github.workspace}}\flex
+         BISON_EXECUTABLE: ${{github.workspace}}\flex\win_bison.exe
+         
 
     - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config Release -- /m
+
