@@ -66,6 +66,7 @@ public node engine_parameters {
     input redline: 6000 * units.rpm;
     input starter_speed: 200 * units.rpm;
     input starter_torque: 200 * units.lb_ft;
+	input ccw_rotation: false;
     input fuel: fuel();
 }
 
@@ -75,7 +76,7 @@ private node _engine => __engine_sim__engine {
     input redline [float];
     input starter_speed [float];
     input starter_torque [float];
-
+    input ccw_rotation [bool];
     input fuel [fuel];
 
     alias output __out [engine_channel];
@@ -88,7 +89,7 @@ public node engine {
     input redline: params.redline;
     input starter_speed: params.starter_speed;
     input starter_torque: params.starter_torque;
-
+	input ccw_rotation: params.ccw_rotation;
     input fuel: params.fuel;
 
     alias output __out [_engine]:
@@ -98,7 +99,7 @@ public node engine {
             redline: redline,
             starter_speed: starter_speed,
             starter_torque: starter_torque,
-
+			ccw_rotation: ccw_rotation,
             fuel: fuel
         );
 }

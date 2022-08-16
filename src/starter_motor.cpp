@@ -8,6 +8,7 @@ StarterMotor::StarterMotor() : atg_scs::Constraint(1, 1) {
     m_maxTorque = units::torque(80.0, units::ft_lb);
     m_rotationSpeed = -units::rpm(200.0);
     m_enabled = false;
+    m_ccwRotation = false;
 }
 
 StarterMotor::~StarterMotor() {
@@ -31,9 +32,18 @@ void StarterMotor::calculate(Output *output, atg_scs::SystemState *state) {
     output->kd[0] = m_kd;
 
     output->C[0] = 0;
-
-    output->v_bias[0] = -m_rotationSpeed;
-
-    output->limits[0][0] = m_enabled ? -m_maxTorque : 0.0;
-    output->limits[0][1] = 0.0;
+    if(!m_ccwRotation)
+        output->v_bias[0] = -m_rotationSpeed;
+    else
+        output->v_bias[0] = m_rotationSpeed;
+    if (!m_ccwRotation)
+    {
+        output->limits[0][0] = m_enabled ? -m_maxTorque : 0.0;
+        output->limits[0][1] = 0.0;
+    }
+    else
+    {
+        output->limits[0][0] = 0.0;
+        output->limits[0][1] = m_enabled ? m_maxTorque : 0.0;
+    }
 }

@@ -28,7 +28,7 @@ Engine::Engine() {
     m_starterSpeed = 0;
     m_starterTorque = 0;
     m_redline = 0;
-
+    m_ccwRotation = false;
     m_throttle = 0.0;
 }
 
@@ -52,6 +52,7 @@ void Engine::initialize(const Parameters &params) {
     m_starterTorque = params.StarterTorque;
     m_starterSpeed = params.StarterSpeed;
     m_redline = params.Redline;
+    m_ccwRotation = params.CCWRotation;
     m_name = params.Name;
 
     m_crankshafts = new Crankshaft[m_crankshaftCount];

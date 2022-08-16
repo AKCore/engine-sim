@@ -44,20 +44,20 @@ Simulator::~Simulator() {
     assert(m_exhaustFlowStagingBuffer == nullptr);
 }
 
-void Simulator::initialize(const Parameters &params) {
+void Simulator::initialize(const Parameters& params) {
     if (params.Engine == nullptr) {
         return;
     }
 
     if (params.SystemType == SystemType::NsvOptimized) {
-        atg_scs::OptimizedNsvRigidBodySystem *system =
+        atg_scs::OptimizedNsvRigidBodySystem* system =
             new atg_scs::OptimizedNsvRigidBodySystem;
         system->initialize(
             new atg_scs::GaussSeidelSleSolver);
         m_system = system;
     }
     else {
-        atg_scs::GenericRigidBodySystem *system =
+        atg_scs::GenericRigidBodySystem* system =
             new atg_scs::GenericRigidBodySystem;
         system->initialize(
             new atg_scs::GaussianEliminationSleSolver,
@@ -87,13 +87,13 @@ void Simulator::initialize(const Parameters &params) {
     const double kd = 10;
 
     for (int i = 0; i < crankCount; ++i) {
-        Crankshaft *outputShaft = m_engine->getCrankshaft(0);
-        Crankshaft *crankshaft = m_engine->getCrankshaft(i);
+        Crankshaft* outputShaft = m_engine->getCrankshaft(0);
+        Crankshaft* crankshaft = m_engine->getCrankshaft(i);
 
         m_crankConstraints[i].setBody(&crankshaft->m_body);
         m_crankConstraints[i].setWorldPosition(
-                crankshaft->getPosX(),
-                crankshaft->getPosY());
+            crankshaft->getPosX(),
+            crankshaft->getPosY());
         m_crankConstraints[i].setLocalPosition(0.0, 0.0);
         m_crankConstraints[i].m_kd = kd;
         m_crankConstraints[i].m_ks = ks;
@@ -102,7 +102,7 @@ void Simulator::initialize(const Parameters &params) {
         crankshaft->m_body.p_y = crankshaft->getPosY();
         crankshaft->m_body.theta = 0;
         crankshaft->m_body.m =
-                crankshaft->getMass() + crankshaft->getFlywheelMass();
+            crankshaft->getMass() + crankshaft->getFlywheelMass();
         crankshaft->m_body.I = crankshaft->getMomentOfInertia();
 
         m_crankshaftFrictionConstraints[i].m_minTorque = -crankshaft->getFrictionTorque();
@@ -114,7 +114,7 @@ void Simulator::initialize(const Parameters &params) {
         m_system->addConstraint(&m_crankshaftFrictionConstraints[i]);
 
         if (crankshaft != outputShaft) {
-            atg_scs::ClutchConstraint *crankLink = &m_crankshaftLinks[i - 1];
+            atg_scs::ClutchConstraint* crankLink = &m_crankshaftLinks[i - 1];
             crankLink->setBody1(&outputShaft->m_body);
             crankLink->setBody2(&crankshaft->m_body);
 
@@ -133,11 +133,11 @@ void Simulator::initialize(const Parameters &params) {
     m_system->addRigidBody(&m_vehicleMass);
 
     for (int i = 0; i < cylinderCount; ++i) {
-        Piston *piston = m_engine->getPiston(i);
-        ConnectingRod *connectingRod = piston->getRod();
-        Crankshaft *crankshaft = connectingRod->getCrankshaft();
+        Piston* piston = m_engine->getPiston(i);
+        ConnectingRod* connectingRod = piston->getRod();
+        Crankshaft* crankshaft = connectingRod->getCrankshaft();
 
-        CylinderBank *bank = piston->getCylinderBank();
+        CylinderBank* bank = piston->getCylinderBank();
         const double dx = std::cos(bank->getAngle() + constants::pi / 2);
         const double dy = std::sin(bank->getAngle() + constants::pi / 2);
 
@@ -163,9 +163,9 @@ void Simulator::initialize(const Parameters &params) {
 
         double journal_x = 0.0, journal_y = 0.0;
         crankshaft->getRodJournalPositionLocal(
-                connectingRod->getJournal(),
-                &journal_x,
-                &journal_y);
+            connectingRod->getJournal(),
+            &journal_x,
+            &journal_y);
 
         m_linkConstraints[i * 2 + 1].setBody1(&connectingRod->m_body);
         m_linkConstraints[i * 2 + 1].setBody2(&crankshaft->m_body);
@@ -195,7 +195,10 @@ void Simulator::initialize(const Parameters &params) {
 
     m_starterMotor.connectCrankshaft(m_engine->getOutputCrankshaft());
     m_starterMotor.m_maxTorque = m_engine->getStarterTorque();
+
     m_starterMotor.m_rotationSpeed = -m_engine->getStarterSpeed();
+    m_starterMotor.setRotationDirection(m_engine->getIsStarterCCWRotation());
+
     m_system->addConstraint(&m_starterMotor);
 
     placeAndInitialize();

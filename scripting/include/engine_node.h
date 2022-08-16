@@ -142,6 +142,7 @@ namespace es_script {
             addInput("name", &m_parameters.Name);
             addInput("starter_torque", &m_parameters.StarterTorque);
             addInput("starter_speed", &m_parameters.StarterSpeed);
+            addInput("ccw_rotation", &m_parameters.CCWRotation);
             addInput("redline", &m_parameters.Redline);
             addInput("fuel", &m_fuel, InputTarget::Type::Object);
 
